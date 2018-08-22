@@ -11,7 +11,7 @@ import Foundation
 public class Push {
     
     /// The channel
-    let channel: Channel
+    unowned var channel: Channel
     
     /// The event, for example ChannelEvent.join
     let event: String

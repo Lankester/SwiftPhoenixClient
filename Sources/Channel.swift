@@ -86,13 +86,13 @@ public class Channel {
                              payload: self.params,
                              timeout: self.timeout)
         
-        self.rejoinTimer = PhxTimer(callback: {
+        self.rejoinTimer = PhxTimer(callback: { [unowned self] in
             self.rejoinTimer?.scheduleTimeout()
             if self.socket.isConnected { self.rejoin() }
         }, timerCalc: socket.reconnectAfterMs)
         
         /// Perfom once the Channel is joined
-        self.joinPush.receive("ok") { (_) in
+        self.joinPush.receive("ok") { [unowned self] (_) in
             self.state = ChannelState.joined
             self.rejoinTimer?.reset()
             self.pushBuffer.forEach( { $0.send() })
@@ -100,7 +100,7 @@ public class Channel {
         }
         
         /// Perfom when the Channel has been closed
-        self.onClose { (_) in
+        self.onClose { [unowned self] (_) in
             self.rejoinTimer?.reset()
             self.socket.logItems("channel", "close \(self.topic)")
             self.state = ChannelState.closed
@@ -108,14 +108,14 @@ public class Channel {
         }
         
         /// Perfom when the Channel errors
-        self.onError { (_) in
+        self.onError { [unowned self] (_) in
             guard self.isLeaving || !self.isClosed else { return }
             self.socket.logItems("channel", "error \(self.topic)")
             self.state = ChannelState.errored
             self.rejoinTimer?.scheduleTimeout()
         }
         
-        self.joinPush.receive("timeout") { (_) in
+        self.joinPush.receive("timeout") { [unowned self] (_) in
             guard !self.isJoining else { return }
             self.socket.logItems("channel", "timeout \(self.topic) \(self.joinRef) after \(self.timeout)ms")
             
@@ -127,7 +127,7 @@ public class Channel {
             self.rejoinTimer?.scheduleTimeout()
         }
         
-        self.on(ChannelEvent.reply) { (message) in
+        self.on(ChannelEvent.reply) { [unowned self] (message) in
             let replyEventName = self.replyEventName(message.ref)
             let replyMessage = Message(ref: message.ref, topic: message.topic, event: replyEventName, payload: message.payload)
             self.trigger(replyMessage)
